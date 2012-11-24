@@ -594,6 +594,7 @@ public class Iteratees {
         private final ConcurrentLinkedQueue<T> pushQueue = new ConcurrentLinkedQueue<T>();
         @Override
         public Option<T> next() {
+            System.out.println("consume");
             return Option.apply(pushQueue.poll());
         }
         @Override

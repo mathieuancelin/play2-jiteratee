@@ -64,6 +64,8 @@ public class RealTime extends Controller {
             }
         });
 
-        return JIteratee.eventSource(Streams.events.through(secure, inBounds).through(asJson));
+        // TODO : it seems that enumeratee are buffering data ... GGRRRR
+        //return JIteratee.eventSource(Streams.events.through(secure, inBounds).through(asJson));
+        return JIteratee.eventSource(Streams.events);
     }
 }
