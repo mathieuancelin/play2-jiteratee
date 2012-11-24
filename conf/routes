@@ -5,11 +5,14 @@
 # Home page
 GET     /                           controllers.Application.index()
 GET     /comet                      controllers.Application.comet()
-GET     /sse                      controllers.Application.sse()
-GET     /stream                      controllers.Application.stream()
-GET     /websocket                      controllers.Application.websocket()
+GET     /sse                        controllers.Application.sse()
+GET     /stream                     controllers.Application.stream()
+GET     /websocket                  controllers.Application.websocket()
 
-GET     /rt                          controllers.RealTime.index(role = "EMPLOYEE")
+POST    /push                       controllers.Application.push()
+GET     /ssepushed                  controllers.Application.ssePushed()
+
+GET     /rt                         controllers.RealTime.index(role = "EMPLOYEE")
 GET     /manager                    controllers.RealTime.index(role = "MANAGER")
 GET     /feed                       controllers.RealTime.feed(role, lower: Int, higher: Int)
 

@@ -18,6 +18,14 @@
             $('#message').html(data)
         }
     }
+    function openSSEConnection2() {
+        var pushSource = new EventSource( '@routes.Application.ssePushed()' )
+        pushSource.onmessage = function ( event ) {
+            var data = event.data
+            console.log('Received sse : ' + data)
+            $('#message3').append("<li>" + data + "</li>")
+        }
+    }
     var cometMessage = function(event) {
         console.log('Received comet: ' + event)
         $('#message2').html(event)
@@ -25,6 +33,7 @@
     $(document).ready(function () {
         $('iframe').hide()
         setTimeout(openSSEConnection,400)
+        setTimeout(openSSEConnection2,400)
         var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
         socket = new WS("ws://" + location.host + "/websocket")
         socket.onmessage = function(event) {

@@ -4,14 +4,29 @@ import play.mvc.*;
 
 import iteratee.F;
 import iteratee.Iteratees;
+import static iteratee.Iteratees.*;
 import iteratee.JIteratee;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Application extends Controller {
 
+    public static final AtomicInteger integer = new AtomicInteger(0);
+    public static final PushEnumerator<String> enumerator = Enumerator.unicast(String.class);
+    public static final HubEnumerator<String> hub = Enumerator.broadcast(enumerator);
+
+    static {
+        hub.broadcast();
+    }
+
     public static Result index() {
         return ok(views.html.index.render(""));
+    }
+
+    public static Result push() {
+        enumerator.push(integer.incrementAndGet() + "");
+        return ok();
     }
   
     public static Result comet() {
@@ -21,6 +36,10 @@ public class Application extends Controller {
                 return F.Option.some(System.currentTimeMillis() + "");
             }
         }));
+    }
+
+    public static Result ssePushed() {
+        return JIteratee.eventSource(hub);
     }
 
     public static Result sse() {
