@@ -197,6 +197,12 @@ public class Iteratees {
                 }
             }
         }
+        void setEnumerator(ActorRef ref) {
+            this.enumerator = ref;
+        }
+        void setIteratee(ActorRef ref) {
+            this.iteratee = ref;
+        }
         public abstract boolean hasNext();
         public abstract Option<I> next();
         void onApply() {
@@ -348,6 +354,8 @@ public class Iteratees {
             iteratee = system().actorOf(forwarderActorProps(toIteratee), UUID.randomUUID().toString());
             ActorRef enumeratee = system().actorOf(forwarderActorProps(throughEnumeratee), UUID.randomUUID().toString());
             enumerator = system().actorOf(forwarderActorProps(fromEnumerator), UUID.randomUUID().toString());
+            fromEnumerator.setEnumerator(enumerator);
+            fromEnumerator.setIteratee(enumeratee);
             throughEnumeratee.setFromEnumerator(enumerator);
             throughEnumeratee.setToIteratee(iteratee);
             fromEnumerator.onApply();
@@ -378,6 +386,12 @@ public class Iteratees {
         @Override
         void onApply() {
             fromEnumerator.onApply();
+        }
+        void setEnumerator(ActorRef ref) {
+            this.fromEnumerator.setEnumerator(ref);
+        }
+        void setIteratee(ActorRef ref) {
+            this.fromEnumerator.setIteratee(ref);
         }
         @Override
         public <O> Enumerator<O> through(Enumeratee<I, O>... enumeratees) {
@@ -594,7 +608,6 @@ public class Iteratees {
         private final ConcurrentLinkedQueue<T> pushQueue = new ConcurrentLinkedQueue<T>();
         @Override
         public Option<T> next() {
-            System.out.println("consume");
             return Option.apply(pushQueue.poll());
         }
         @Override
@@ -610,6 +623,7 @@ public class Iteratees {
                 if (enumerator != null) {
                     enumerator.tell(Cont.INSTANCE, iteratee);
                 } else {
+                    System.out.println("null ...");
                     //throw new RuntimeException("Enumerator should not be null");
                 }
             } catch (Exception e) { e.printStackTrace(); }
@@ -725,6 +739,16 @@ public class Iteratees {
         void onApply() {
             for (Enumerator e : enumerators) {
                 e.onApply();
+            }
+        }
+        void setIteratee(ActorRef ref) {
+            for (Enumerator e : enumerators) {
+                e.setIteratee(ref);
+            }
+        }
+        void setEnumerator(ActorRef ref) {
+            for (Enumerator e : enumerators) {
+                e.setEnumerator(ref);
             }
         }
     }

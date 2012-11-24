@@ -32,7 +32,7 @@ public class RealTime extends Controller {
                         }
                     }
                 }
-                return o;
+                return null;
             }
         });
 
@@ -47,7 +47,7 @@ public class RealTime extends Controller {
                         return operation;
                     }
                 }
-                return o;
+                return null;
             }
         });
 
@@ -60,12 +60,10 @@ public class RealTime extends Controller {
                 for (Streams.Operation operation : F.caseClassOf(Streams.Operation.class ,o)) {
                     return "{\"type\":\"operation\", \"amount\":" + operation.amount + ", \"visibility\":\"" + operation.level + "\"}";
                 }
-                return "";
+                return null;
             }
         });
 
-        // TODO : it seems that enumeratee are buffering data ... GGRRRR
-        //return JIteratee.eventSource(Streams.events.through(secure, inBounds).through(asJson));
-        return JIteratee.eventSource(Streams.events);
+        return JIteratee.eventSource(Streams.events.through(secure, inBounds).through(asJson));
     }
 }

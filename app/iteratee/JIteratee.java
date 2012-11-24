@@ -63,7 +63,6 @@ public class JIteratee {
                 enumerator.applyOn(Iteratee.foreach(new Function<T, Unit>() {
                     @Override
                     public Unit apply(T s) {
-                        System.out.println("writing " + builder.build(s));
                         out.write("data: " + builder.build(s) + "\n\n");
                         return Unit.unit();
                     }
