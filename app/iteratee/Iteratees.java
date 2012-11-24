@@ -824,6 +824,7 @@ public class Iteratees {
                     };
                 }
             }), UUID.randomUUID().toString());
+            broadcast();
         }
         public HubEnumerator<T> add(final Iteratee<T, ?> iteratee) {
             iteratees.add(system().actorOf(forwarderActorProps(iteratee), UUID.randomUUID().toString()));

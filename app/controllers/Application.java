@@ -16,10 +16,6 @@ public class Application extends Controller {
     public static final PushEnumerator<String> enumerator = Enumerator.unicast(String.class);
     public static final HubEnumerator<String> hub = Enumerator.broadcast(enumerator);
 
-    static {
-        hub.broadcast();
-    }
-
     public static Result index() {
         return ok(views.html.index.render(""));
     }
