@@ -1,0 +1,44 @@
+@(message: String)
+
+@main("Welcome to Play 2.0") {
+
+<input id="text" type="text" /><br/>
+<input id="submit" type="submit" /><br/><br/>
+
+<div id="message"></div>
+<div id="message2"></div><br/>
+<ul id="message3"></ul>
+
+<script type="text/javascript">
+    function openSSEConnection() {
+        var pushSource = new EventSource( '@routes.Application.sse()' )
+        pushSource.onmessage = function ( event ) {
+            var data = event.data
+            console.log('Received sse : ' + data)
+            $('#message').html(data)
+        }
+    }
+    var cometMessage = function(event) {
+        console.log('Received comet: ' + event)
+        $('#message2').html(event)
+    }
+    $(document).ready(function () {
+        $('iframe').hide()
+        setTimeout(openSSEConnection,400)
+        var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
+        socket = new WS("ws://" + location.host + "/websocket")
+        socket.onmessage = function(event) {
+            var data = event.data
+            console.log('Received websocket: ' + data)
+            $('#message3').append("<li>" + data + "</li>")
+        }
+        $('#submit').click(function(e) {
+            e.preventDefault()
+            var value = $('#text').val()
+            socket.send(value)
+        })
+    })
+</script>
+
+<iframe src="@routes.Application.comet()"></iframe>
+}

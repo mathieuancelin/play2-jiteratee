@@ -1,0 +1,17 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /                           controllers.Application.index()
+GET     /comet                      controllers.Application.comet()
+GET     /sse                      controllers.Application.sse()
+GET     /stream                      controllers.Application.stream()
+GET     /websocket                      controllers.Application.websocket()
+
+GET     /rt                          controllers.RealTime.index(role = "EMPLOYEE")
+GET     /manager                    controllers.RealTime.index(role = "MANAGER")
+GET     /feed                       controllers.RealTime.feed(role, lower: Int, higher: Int)
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)
