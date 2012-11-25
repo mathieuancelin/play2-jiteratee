@@ -3,6 +3,7 @@ package iteratee;
 import org.codehaus.jackson.JsonNode;
 import play.libs.Comet;
 import play.mvc.Controller;
+import play.mvc.Http;
 import play.mvc.Results;
 import play.mvc.WebSocket;
 
@@ -11,11 +12,11 @@ import java.io.UnsupportedEncodingException;
 import static iteratee.F.*;
 import static iteratee.Iteratees.*;
 
-public class JIteratee {
+public class JIteratees {
 
     public static final String EVENTSOURCE = "text/event-stream";
 
-    public static <T> play.mvc.Results.Status stream(final Enumerator<T> enumerator) {
+    public static <T> Results.Status stream(final Enumerator<T> enumerator) {
         return stream(enumerator, new ByteBuilder<T>() {
             @Override
             public byte[] build(T value) {
@@ -29,7 +30,7 @@ public class JIteratee {
         });
     }
 
-    public static <T> play.mvc.Results.Status stream(final HubEnumerator<T> enumerator) {
+    public static <T> Results.Status stream(final HubEnumerator<T> enumerator) {
         return stream(enumerator, new ByteBuilder<T>() {
             @Override
             public byte[] build(T value) {
@@ -46,6 +47,12 @@ public class JIteratee {
     public static <T> Results.Status stream(final HubEnumerator<T> enumerator, final ByteBuilder<T> builder) {
         Results.Chunks<byte[]> chunks = new Results.ByteChunks() {
             public void onReady(final Results.Chunks.Out<byte[]> out) {
+                out.onDisconnected(new play.libs.F.Callback0() {
+                    @Override
+                    public void invoke() throws Throwable {
+
+                    }
+                });
                 enumerator.add(Iteratees.Iteratee.foreach(new Function<T, Unit>() {
                     @Override
                     public Unit apply(T s) {
@@ -59,9 +66,15 @@ public class JIteratee {
         return Controller.ok(chunks);
     }
 
-    public static <T> play.mvc.Results.Status stream(final Enumerator<T> enumerator, final ByteBuilder<T> builder) {
+    public static <T> Results.Status stream(final Enumerator<T> enumerator, final ByteBuilder<T> builder) {
         Results.Chunks<byte[]> chunks = new Results.ByteChunks() {
             public void onReady(final Results.Chunks.Out<byte[]> out) {
+                out.onDisconnected(new play.libs.F.Callback0() {
+                    @Override
+                    public void invoke() throws Throwable {
+
+                    }
+                });
                 enumerator.applyOn(Iteratees.Iteratee.foreach(new Function<T, Unit>() {
                     @Override
                     public Unit apply(T s) {
@@ -90,6 +103,12 @@ public class JIteratee {
     public static <T> Results.Status eventSource(final Enumerator<T> enumerator, final StrBuilder<T> builder) {
         Results.Chunks<String> chunks = new Results.StringChunks() {
             public void onReady(final Results.Chunks.Out<String> out) {
+                out.onDisconnected(new play.libs.F.Callback0() {
+                    @Override
+                    public void invoke() throws Throwable {
+
+                    }
+                });
                 enumerator.applyOn(Iteratee.foreach(new Function<T, Unit>() {
                     @Override
                     public Unit apply(T s) {
@@ -112,6 +131,12 @@ public class JIteratee {
     public static <T> Results.Status eventSource(final HubEnumerator<T> enumerator, final StrBuilder<T> builder) {
         Results.Chunks<String> chunks = new Results.StringChunks() {
             public void onReady(final Results.Chunks.Out<String> out) {
+                out.onDisconnected(new play.libs.F.Callback0() {
+                    @Override
+                    public void invoke() throws Throwable {
+
+                    }
+                });
                 enumerator.add(Iteratee.foreach(new Function<T, Unit>() {
                     @Override
                     public Unit apply(T s) {
@@ -126,7 +151,7 @@ public class JIteratee {
         return Controller.ok(chunks);
     }
 
-    public static <T> play.mvc.Results.Status eventSource(final Enumerator<T> enumerator) {
+    public static <T> Results.Status eventSource(final Enumerator<T> enumerator) {
         return eventSource(enumerator, new StrBuilder<T>() {
             @Override
             public String build(T value) {
@@ -139,7 +164,7 @@ public class JIteratee {
         });
     }
 
-    public static <T> play.mvc.Results.Status eventSource(final HubEnumerator<T> enumerator) {
+    public static <T> Results.Status eventSource(final HubEnumerator<T> enumerator) {
         return eventSource(enumerator, new StrBuilder<T>() {
             @Override
             public String build(T value) {
@@ -175,6 +200,12 @@ public class JIteratee {
                 }));
             }
         };
+        comet.onDisconnected(new play.libs.F.Callback0() {
+            @Override
+            public void invoke() throws Throwable {
+
+            }
+        });
         return Controller.ok(comet);
     }
 
@@ -195,6 +226,12 @@ public class JIteratee {
                 });
             }
         };
+        /**comet.onDisconnected(new play.libs.F.Callback0() {
+            @Override
+            public void invoke() throws Throwable {
+
+            }
+        });**/
         return Controller.ok(comet);
     }
 
@@ -225,7 +262,7 @@ public class JIteratee {
     }
 
     public static <T> WebSocket<String> websocket(final Iteratee<String, Unit> inIteratee, final Enumerator<String> outEnumerator) {
-        return new WebSocket<String>() {
+        WebSocket<String> ws =  new WebSocket<String>() {
             public void onReady(final WebSocket.In<String> in, final WebSocket.Out<String> out) {
                 final Iteratee<String, Unit> send = Iteratee.foreach(new Function<String, Unit>() {
                     @Override
@@ -247,8 +284,15 @@ public class JIteratee {
                 });
                 push.applyOn(inIteratee);
                 outEnumerator.applyOn(send);
+                in.onClose(new play.libs.F.Callback0() {
+                    @Override
+                    public void invoke() throws Throwable {
+
+                    }
+                });
             }
         };
+        return ws;
     }
 
     public static <T> WebSocket<String> websocket(final Iteratee<String, Unit> inIteratee, final HubEnumerator<String> outEnumerator) {

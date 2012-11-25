@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Iteratees {
 
@@ -623,7 +624,7 @@ public class Iteratees {
                 if (enumerator != null) {
                     enumerator.tell(Cont.INSTANCE, iteratee);
                 } else {
-                    System.out.println("null ...");
+                    //System.out.println("null ...");
                     //throw new RuntimeException("Enumerator should not be null");
                 }
             } catch (Exception e) { e.printStackTrace(); }
@@ -638,6 +639,7 @@ public class Iteratees {
         private final long every;
         private final TimeUnit unit;
         private final Function<Unit, Option<T>> callback;
+        private final AtomicBoolean scheduled = new AtomicBoolean(false);
         public CallbackPushEnumerator(long every, TimeUnit unit, Function<Unit, Option<T>> callback) {
             this.every = every;
             this.unit = unit;
@@ -646,7 +648,9 @@ public class Iteratees {
         @Override
         public <O> Promise<O> applyOn(Iteratee<T, O> it) {
             Promise<O> promise = super.applyOn(it);
-            schedule();
+            if (!scheduled.get()) {
+                schedule();
+            }
             return promise;
         }
         private void schedule() {
@@ -659,10 +663,13 @@ public class Iteratees {
                     }
                 }
             });
+            scheduled.set(true);
         }
         @Override
         void onApply() {
-            schedule();
+            if (!scheduled.get()) {
+                schedule();
+            }
         }
         private Cancellable cancel;
         @Override
@@ -702,12 +709,18 @@ public class Iteratees {
             globalIteratee = system().actorOf(iterateeProp, UUID.randomUUID().toString());
             this.enumerators = new CopyOnWriteArrayList<Enumerator<T>>(Arrays.asList(enumerators));
         }
+        private ConcurrentLinkedQueue<Option<T>> queue = new ConcurrentLinkedQueue<Option<T>>();
         @Override
         public Option<T> next() {
-            for (Enumerator en : enumerators) {
-                if (en.hasNext()) {
-                    return en.next();
+            if (queue.isEmpty()) {
+                for (Enumerator en : enumerators) {
+                    if (en.hasNext()) {
+                        queue.offer(en.next());
+                    }
                 }
+            }
+            if (!queue.isEmpty()) {
+                return queue.poll();
             }
             return Option.none();
             //throw new RuntimeException("next should never be called");
@@ -848,7 +861,6 @@ public class Iteratees {
             internalIteratee.tell(PoisonPill.getInstance());
         }
     }
-
     private static Props forwarderActorProps(final Forward f) {
         return new Props().withCreator(new UntypedActorFactory() {
             public Actor create() {

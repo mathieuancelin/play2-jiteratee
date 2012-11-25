@@ -1,11 +1,14 @@
 package controllers;
 
+import iteratee.JIteratees;
 import models.Streams;
+import static models.Streams.*;
 import play.mvc.Controller;
 import play.mvc.Result;
 import iteratee.F;
+import static iteratee.F.*;
 import iteratee.Iteratees;
-import iteratee.JIteratee;
+import static iteratee.Iteratees.*;
 
 public class RealTime extends Controller {
 
@@ -15,15 +18,15 @@ public class RealTime extends Controller {
 
     public static Result feed(final String role, final int lowerBound, final int higherBound) {
 
-        Iteratees.Enumeratee<Streams.Event, Streams.Event> secure = Iteratees.Enumeratee.map(new F.Function<Streams.Event, Streams.Event>() {
+        Enumeratee<Event, Event> secure = Enumeratee.map(new Function<Event, Event>() {
             @Override
-            public Streams.Event apply(Streams.Event o) {
-                for (Streams.SystemStatus status : F.caseClassOf(Streams.SystemStatus.class, o)) {
+            public Event apply(Event o) {
+                for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
                     if (role.equals("MANAGER")) {
                         return status;
                     }
                 }
-                for (Streams.Operation operation : F.caseClassOf(Streams.Operation.class ,o)) {
+                for (Operation operation : caseClassOf(Operation.class, o)) {
                     if (operation.level.equals("public")) {
                         return operation;
                     } else {
@@ -36,13 +39,13 @@ public class RealTime extends Controller {
             }
         });
 
-        Iteratees.Enumeratee<Streams.Event, Streams.Event> inBounds = Iteratees.Enumeratee.map(new F.Function<Streams.Event, Streams.Event>() {
+        Enumeratee<Event, Event> inBounds = Enumeratee.map(new F.Function<Event, Event>() {
             @Override
-            public Streams.Event apply(Streams.Event o) {
-                for (Streams.SystemStatus status : F.caseClassOf(Streams.SystemStatus.class, o)) {
+            public Event apply(Event o) {
+                for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
                     return status;
                 }
-                for (Streams.Operation operation : F.caseClassOf(Streams.Operation.class ,o)) {
+                for (Operation operation : caseClassOf(Operation.class ,o)) {
                     if (operation.amount > lowerBound && operation.amount < higherBound) {
                         return operation;
                     }
@@ -51,19 +54,19 @@ public class RealTime extends Controller {
             }
         });
 
-        Iteratees.Enumeratee<Streams.Event, String> asJson = Iteratees.Enumeratee.map(new F.Function<Streams.Event, String>() {
+        Enumeratee<Event, String> asJson = Enumeratee.map(new Function<Event, String>() {
             @Override
-            public String apply(Streams.Event o) {
-                for (Streams.SystemStatus status : F.caseClassOf(Streams.SystemStatus.class, o)) {
+            public String apply(Event o) {
+                for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
                     return "{\"type\":\"status\", \"message\":\"" + status.message + "\"}";
                 }
-                for (Streams.Operation operation : F.caseClassOf(Streams.Operation.class ,o)) {
+                for (Operation operation : caseClassOf(Operation.class ,o)) {
                     return "{\"type\":\"operation\", \"amount\":" + operation.amount + ", \"visibility\":\"" + operation.level + "\"}";
                 }
                 return null;
             }
         });
 
-        return JIteratee.eventSource(Streams.events.through(secure, inBounds).through(asJson));
+        return JIteratees.eventSource(Streams.events.through(secure, inBounds).through(asJson));
     }
 }

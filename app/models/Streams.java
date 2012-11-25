@@ -1,7 +1,9 @@
 package models;
 
 import iteratee.F;
+import static iteratee.F.*;
 import iteratee.Iteratees;
+import static iteratee.Iteratees.*;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -17,10 +19,6 @@ public class Streams {
             this.level = level;
             this.amount = amount;
         }
-        @Override
-        public String toString() {
-            return "{\"type\":\"operation\", \"amount\":" + amount + ", \"visibility\":\"" + level + "\"}";
-        }
     }
 
     public static class SystemStatus implements Event {
@@ -28,32 +26,26 @@ public class Streams {
         public SystemStatus(String message) {
             this.message = message;
         }
-        @Override
-        public String toString() {
-            return "{\"type\":\"status\", \"message\":\"" + message + "\"}";
-        }
     }
 
     public static final Random random = new Random();
 
-    public static final Iteratees.Enumerator<Event> operations = Iteratees.Enumerator.generate(1, TimeUnit.SECONDS, new F.Function<F.Unit, F.Option<Event>>() {
+    public static final Enumerator<Event> operations = Enumerator.generate(1, TimeUnit.SECONDS, new Function<Unit, Option<Event>>() {
         @Override
-        public F.Option<Event> apply(F.Unit unit) {
+        public Option<Event> apply(Unit unit) {
             String status = random.nextBoolean() ? "public" : "private";
             Event evt = new Operation(status, random.nextInt(1000));
-            System.out.println("generate : " + evt);
-            return F.Option.some(evt);
+            return Option.some(evt);
         }
     });
 
-    public static final Iteratees.Enumerator<Event> noise = Iteratees.Enumerator.generate(5, TimeUnit.SECONDS, new F.Function<F.Unit, F.Option<Event>>() {
+    public static final Enumerator<Event> noise = Enumerator.generate(5, TimeUnit.SECONDS, new Function<Unit, Option<Event>>() {
         @Override
-        public F.Option<Event> apply(F.Unit unit) {
+        public Option<Event> apply(Unit unit) {
             Event evt = new SystemStatus("System message");
-            System.out.println("generate : " + evt);
-            return F.Option.some(evt);
+            return Option.some(evt);
         }
     });
-    public static final Iteratees.Enumerator<Event> events = Iteratees.Enumerator.interleave(operations, noise);
+    public static final Enumerator<Event> events = Enumerator.interleave(operations, noise);
 
 }
