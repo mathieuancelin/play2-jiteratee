@@ -271,7 +271,10 @@ public class Iteratees {
             return new CallbackPushEnumerator<T>(every, unit, callback);
         }
         public static <T> HubEnumerator<T> broadcast(Enumerator<T> enumerator) {
-            return new HubEnumerator(enumerator);
+            return new HubEnumerator(enumerator, true);
+        }
+        public static <T> HubEnumerator<T> broadcast(Enumerator<T> enumerator, boolean start) {
+            return new HubEnumerator(enumerator, start);
         }
     }
     public static abstract class Enumeratee<I, O> implements Forward {
@@ -809,7 +812,8 @@ public class Iteratees {
         private final Enumerator<T> fromEnumerator;
         private ActorRef enumerator;
         private final ActorRef internalIteratee;
-        public HubEnumerator(Enumerator<T> fromEnumerator) {
+        private boolean start = false;
+        public HubEnumerator(Enumerator<T> fromEnumerator, boolean start) {
             this.fromEnumerator = fromEnumerator;
             internalIteratee = system().actorOf(new Props().withCreator(new UntypedActorFactory() {
                 public Actor create() {
@@ -852,20 +856,25 @@ public class Iteratees {
                     };
                 }
             }), UUID.randomUUID().toString());
-            broadcast();
+            if (start) {
+                broadcast();
+            }
+            this.start = start;
         }
         public HubEnumerator<T> add(final Iteratee<T, ?> iteratee) {
             iteratees.add(system().actorOf(forwarderActorProps(iteratee), UUID.randomUUID().toString()));
             return this;
         }
         public void broadcast() {
-            enumerator = system().actorOf(forwarderActorProps(fromEnumerator), UUID.randomUUID().toString());
-            fromEnumerator.enumerator = enumerator;
-            fromEnumerator.iteratee = internalIteratee;
-            enumerator.tell(Run.INSTANCE, internalIteratee);
-            if (fromEnumerator instanceof CallbackPushEnumerator) {
-                final CallbackPushEnumerator<T> p = (CallbackPushEnumerator<T>) fromEnumerator;
-                p.schedule();
+            if (!start) {
+                enumerator = system().actorOf(forwarderActorProps(fromEnumerator), UUID.randomUUID().toString());
+                fromEnumerator.enumerator = enumerator;
+                fromEnumerator.iteratee = internalIteratee;
+                enumerator.tell(Run.INSTANCE, internalIteratee);
+                if (fromEnumerator instanceof CallbackPushEnumerator) {
+                    final CallbackPushEnumerator<T> p = (CallbackPushEnumerator<T>) fromEnumerator;
+                    p.schedule();
+                }
             }
         }
         public void stop() {
