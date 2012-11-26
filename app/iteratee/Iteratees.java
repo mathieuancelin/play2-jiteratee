@@ -320,6 +320,9 @@ public class Iteratees {
         public static <I,O> Enumeratee<I,O> map(Function<I,O> transform) {
             return new MapEnumeratee<I, O>(transform);
         }
+        public static <I,O> Enumeratee<I,I> collect(Function<I,Option<I>> transform) {
+            return new CollectEnumeratee<I>(transform);
+        }
     }
 
     /**************************************************************************/
@@ -723,7 +726,6 @@ public class Iteratees {
                 return queue.poll();
             }
             return Option.none();
-            //throw new RuntimeException("next should never be called");
         }
         @Override
         public boolean hasNext() {
@@ -733,7 +735,6 @@ public class Iteratees {
                 }
             }
             return true;
-            //throw new RuntimeException("next should never be called");
         }
         @Override
         public <O> Promise<O> applyOn(final Iteratee<T, O> it) {
@@ -787,6 +788,20 @@ public class Iteratees {
     private static class MapEnumeratee<I, O> extends Enumeratee<I, O> {
         public MapEnumeratee(Function<I, O> transform) {
             super(transform);
+        }
+    }
+    private static class CollectEnumeratee<I> extends Enumeratee<I, I> {
+        public CollectEnumeratee(final Function<I, Option<I>> predicate) {
+            super(new Function<I, I>() {
+                @Override
+                public I apply(I i) {
+                    Option<I> opt = predicate.apply(i);
+                    for (I o : opt) {
+                        return o;
+                    }
+                    return null;
+                }
+            });
         }
     }
     public static class HubEnumerator<T> {

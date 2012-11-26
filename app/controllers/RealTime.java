@@ -18,39 +18,39 @@ public class RealTime extends Controller {
 
     public static Result feed(final String role, final int lowerBound, final int higherBound) {
 
-        Enumeratee<Event, Event> secure = Enumeratee.map(new Function<Event, Event>() {
+        Enumeratee<Event, Event> secure = Enumeratee.collect(new Function<Event, Option<Event>>() {
             @Override
-            public Event apply(Event o) {
+            public Option<Event> apply(Event o) {
                 for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
                     if (role.equals("MANAGER")) {
-                        return status;
+                        return Option.<Event>some(status);
                     }
                 }
                 for (Operation operation : caseClassOf(Operation.class, o)) {
                     if (operation.level.equals("public")) {
-                        return operation;
+                        return Option.<Event>some(operation);
                     } else {
                         if (role.equals("MANAGER")) {
-                            return operation;
+                            return Option.<Event>some(operation);
                         }
                     }
                 }
-                return null;
+                return Option.none();
             }
         });
 
-        Enumeratee<Event, Event> inBounds = Enumeratee.map(new F.Function<Event, Event>() {
+        Enumeratee<Event, Event> inBounds = Enumeratee.collect(new Function<Event, Option<Event>>() {
             @Override
-            public Event apply(Event o) {
+            public Option<Event> apply(Event o) {
                 for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
-                    return status;
+                    return Option.<Event>some(status);
                 }
                 for (Operation operation : caseClassOf(Operation.class ,o)) {
                     if (operation.amount > lowerBound && operation.amount < higherBound) {
-                        return operation;
+                        return Option.<Event>some(operation);
                     }
                 }
-                return null;
+                return Option.none();
             }
         });
 
@@ -63,7 +63,7 @@ public class RealTime extends Controller {
                 for (Operation operation : caseClassOf(Operation.class ,o)) {
                     return "{\"type\":\"operation\", \"amount\":" + operation.amount + ", \"visibility\":\"" + operation.level + "\"}";
                 }
-                return null;
+                return "";
             }
         });
 
