@@ -4,6 +4,7 @@ import iteratee.JIteratees;
 import play.mvc.*;
 
 import iteratee.F;
+import static iteratee.F.*;
 import iteratee.Iteratees;
 import static iteratee.Iteratees.*;
 
@@ -58,11 +59,9 @@ public class Application extends Controller {
 
     public static WebSocket<String> websocket() {
         final Iteratees.PushEnumerator<String> out = Iteratees.Enumerator.unicast(String.class);
-        final Iteratees.Iteratee<String, F.Unit> in = Iteratees.Iteratee.foreach(new F.Function<String, F.Unit>() {
-            @Override
-            public F.Unit apply(String s) {
+        final Iteratees.Iteratee<String, F.Unit> in = Iteratees.Iteratee.foreach(new UFunction<String>() {
+            public void invoke(String s) {
                 out.push("Received : " + s);
-                return F.Unit.unit();
             }
         });
         return JIteratees.websocket(in, out);

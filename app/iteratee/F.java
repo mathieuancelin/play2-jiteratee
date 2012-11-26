@@ -32,6 +32,14 @@ public final class F {
         private Unit() {}
         public static Unit unit() { return instance; }
     }
+
+    public static abstract class UFunction<T> implements Function<T, Unit> {
+        public abstract void invoke(T value);
+        public Unit apply(T value) {
+            invoke(value);
+            return Unit.unit();
+        }
+    }
         
     public static interface Action<T> {
         void apply(T t);

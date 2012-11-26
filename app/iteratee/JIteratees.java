@@ -1,7 +1,9 @@
 package iteratee;
 
+import akka.actor.ActorRef;
 import org.codehaus.jackson.JsonNode;
 import play.libs.Comet;
+import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Results;
@@ -49,9 +51,7 @@ public class JIteratees {
             public void onReady(final Results.Chunks.Out<byte[]> out) {
                 out.onDisconnected(new play.libs.F.Callback0() {
                     @Override
-                    public void invoke() throws Throwable {
-
-                    }
+                    public void invoke() throws Throwable {}
                 });
                 enumerator.add(Iteratees.Iteratee.foreach(new Function<T, Unit>() {
                     @Override
@@ -71,9 +71,7 @@ public class JIteratees {
             public void onReady(final Results.Chunks.Out<byte[]> out) {
                 out.onDisconnected(new play.libs.F.Callback0() {
                     @Override
-                    public void invoke() throws Throwable {
-
-                    }
+                    public void invoke() throws Throwable {}
                 });
                 enumerator.applyOn(Iteratees.Iteratee.foreach(new Function<T, Unit>() {
                     @Override
@@ -100,14 +98,16 @@ public class JIteratees {
         public String build(T value);
     }
 
+    public static interface BuilderFromStr<T> {
+        public T build(String value);
+    }
+
     public static <T> Results.Status eventSource(final Enumerator<T> enumerator, final StrBuilder<T> builder) {
         Results.Chunks<String> chunks = new Results.StringChunks() {
             public void onReady(final Results.Chunks.Out<String> out) {
                 out.onDisconnected(new play.libs.F.Callback0() {
                     @Override
-                    public void invoke() throws Throwable {
-
-                    }
+                    public void invoke() throws Throwable {}
                 });
                 enumerator.applyOn(Iteratee.foreach(new Function<T, Unit>() {
                     @Override
@@ -133,9 +133,7 @@ public class JIteratees {
             public void onReady(final Results.Chunks.Out<String> out) {
                 out.onDisconnected(new play.libs.F.Callback0() {
                     @Override
-                    public void invoke() throws Throwable {
-
-                    }
+                    public void invoke() throws Throwable {}
                 });
                 enumerator.add(Iteratee.foreach(new Function<T, Unit>() {
                     @Override
@@ -156,9 +154,9 @@ public class JIteratees {
             @Override
             public String build(T value) {
                 if (value instanceof JsonNode) {
-                    return ((JsonNode) value).asText();
+                    return Json.stringify((JsonNode) value);
                 } else {
-                    return value.toString();
+                    return /**org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(**/value.toString();
                 }
             }
         });
@@ -169,9 +167,9 @@ public class JIteratees {
             @Override
             public String build(T value) {
                 if (value instanceof JsonNode) {
-                    return ((JsonNode) value).asText();
+                    return Json.stringify((JsonNode) value);
                 } else {
-                    return value.toString();
+                    return /**org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(**/value.toString();
                 }
             }
         });
@@ -181,9 +179,9 @@ public class JIteratees {
         @Override
         public String apply(Object s) {
             if (s instanceof JsonNode) {
-                return "data: " + ((JsonNode) s).asText() + "\n\n";
+                return "data: " + Json.stringify((JsonNode) s) + "\n\n";
             } else {
-                return "data: " + s.toString() + "\n\n";
+                return "data: " + /**org.apache.commons.lang3.StringEscapeUtils.escapeEcmaScript(*/s.toString() + "\n\n";
             }
         }
     });
@@ -202,9 +200,7 @@ public class JIteratees {
         };
         comet.onDisconnected(new play.libs.F.Callback0() {
             @Override
-            public void invoke() throws Throwable {
-
-            }
+            public void invoke() throws Throwable {}
         });
         return Controller.ok(comet);
     }
@@ -226,12 +222,6 @@ public class JIteratees {
                 });
             }
         };
-        /**comet.onDisconnected(new play.libs.F.Callback0() {
-            @Override
-            public void invoke() throws Throwable {
-
-            }
-        });**/
         return Controller.ok(comet);
     }
 
@@ -240,7 +230,7 @@ public class JIteratees {
             @Override
             public String build(T value) {
                 if (value instanceof JsonNode) {
-                    return ((JsonNode) value).asText();
+                    return Json.stringify((JsonNode) value);
                 } else {
                     return value.toString();
                 }
@@ -253,7 +243,7 @@ public class JIteratees {
             @Override
             public String build(T value) {
                 if (value instanceof JsonNode) {
-                    return ((JsonNode) value).asText();
+                    return Json.stringify((JsonNode) value);
                 } else {
                     return value.toString();
                 }
@@ -262,12 +252,28 @@ public class JIteratees {
     }
 
     public static <T> WebSocket<String> websocket(final Iteratee<String, Unit> inIteratee, final Enumerator<String> outEnumerator) {
+        return websocket(inIteratee, new BuilderFromStr<String>() {
+            @Override
+            public String build(String value) {
+                return value;
+            }
+        }, outEnumerator, new StrBuilder<String>() {
+            @Override
+            public String build(String value) {
+                return value;
+            }
+        });
+    }
+
+    public static <I, O> WebSocket<String> websocket(
+            final Iteratee<I, Unit> inIteratee, final BuilderFromStr<I> inBuilder,
+            final Enumerator<O> outEnumerator, final StrBuilder<O> outBuilder) {
         WebSocket<String> ws =  new WebSocket<String>() {
             public void onReady(final WebSocket.In<String> in, final WebSocket.Out<String> out) {
-                final Iteratee<String, Unit> send = Iteratee.foreach(new Function<String, Unit>() {
+                final Iteratee<O, Unit> send = Iteratee.foreach(new Function<O, Unit>() {
                     @Override
-                    public Unit apply(String s) {
-                        out.write(s);
+                    public Unit apply(O s) {
+                        out.write(outBuilder.build(s));
                         return Unit.unit();
                     }
                 });
@@ -282,7 +288,12 @@ public class JIteratees {
                         push.stop();
                     }
                 });
-                push.applyOn(inIteratee);
+                push.through(Enumeratee.map(new Function<String, I>() {
+                    @Override
+                    public I apply(String s) {
+                       return inBuilder.build(s);
+                    }
+                })).applyOn(inIteratee);
                 outEnumerator.applyOn(send);
                 in.onClose(new play.libs.F.Callback0() {
                     @Override
@@ -296,12 +307,28 @@ public class JIteratees {
     }
 
     public static <T> WebSocket<String> websocket(final Iteratee<String, Unit> inIteratee, final HubEnumerator<String> outEnumerator) {
-        return new WebSocket<String>() {
+        return websocket(inIteratee, new BuilderFromStr<String>() {
+            @Override
+            public String build(String value) {
+                return value;
+            }
+        }, outEnumerator, new StrBuilder<String>() {
+            @Override
+            public String build(String value) {
+                return value;
+            }
+        });
+    }
+
+    public static <I, O> WebSocket<String> websocket(
+            final Iteratee<I, Unit> inIteratee, final BuilderFromStr<I> inBuilder,
+            final HubEnumerator<O> outEnumerator, final StrBuilder<O> outBuilder) {
+        WebSocket<String> ws = new WebSocket<String>() {
             public void onReady(final WebSocket.In<String> in, final WebSocket.Out<String> out) {
-                final Iteratee<String, Unit> send = Iteratee.foreach(new Function<String, Unit>() {
+                final Iteratee<O, Unit> send = Iteratee.foreach(new Function<O, Unit>() {
                     @Override
-                    public Unit apply(String s) {
-                        out.write(s);
+                    public Unit apply(O s) {
+                        out.write(outBuilder.build(s));
                         return Unit.unit();
                     }
                 });
@@ -316,9 +343,15 @@ public class JIteratees {
                         push.stop();
                     }
                 });
-                push.applyOn(inIteratee);
+                push.through(Enumeratee.map(new Function<String, I>() {
+                    @Override
+                    public I apply(String s) {
+                        return inBuilder.build(s);
+                    }
+                })).applyOn(inIteratee);
                 outEnumerator.add(send);
             }
         };
+        return ws;
     }
 }

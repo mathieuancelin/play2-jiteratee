@@ -34,16 +34,14 @@ public class Streams {
         @Override
         public Option<Event> apply(Unit unit) {
             String status = random.nextBoolean() ? "public" : "private";
-            Event evt = new Operation(status, random.nextInt(1000));
-            return Option.some(evt);
+            return Option.<Event>some(new Operation(status, random.nextInt(1000)));
         }
     });
 
     public static final Enumerator<Event> noise = Enumerator.generate(5, TimeUnit.SECONDS, new Function<Unit, Option<Event>>() {
         @Override
         public Option<Event> apply(Unit unit) {
-            Event evt = new SystemStatus("System message");
-            return Option.some(evt);
+            return Option.<Event>some(new SystemStatus("System message"));
         }
     });
     public static final Enumerator<Event> events = Enumerator.interleave(operations, noise);
