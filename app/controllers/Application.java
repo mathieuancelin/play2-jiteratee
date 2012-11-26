@@ -8,6 +8,7 @@ import static iteratee.F.*;
 import iteratee.Iteratees;
 import static iteratee.Iteratees.*;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -65,5 +66,9 @@ public class Application extends Controller {
             }
         });
         return JIteratees.websocket(in, out);
+    }
+
+    public static Result file() {
+        return JIteratees.file(Enumerator.fromFile(new File("/tmp/stuff")));
     }
 }

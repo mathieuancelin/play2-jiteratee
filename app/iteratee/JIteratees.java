@@ -18,6 +18,35 @@ public class JIteratees {
 
     public static final String EVENTSOURCE = "text/event-stream";
 
+    public static <T> Results.Status file(final Enumerator<byte[]> enumerator) {
+        return file(enumerator, "application/octet-stream");
+    }
+
+    public static <T> Results.Status file(final Enumerator<byte[]> enumerator, String contentType) {
+        Results.Chunks<byte[]> chunks = new Results.ByteChunks() {
+            public void onReady(final Results.Chunks.Out<byte[]> out) {
+                out.onDisconnected(new play.libs.F.Callback0() {
+                    @Override
+                    public void invoke() throws Throwable {}
+                });
+                enumerator.applyOn(Iteratees.Iteratee.foreach(new Function<byte[], Unit>() {
+                    @Override
+                    public Unit apply(byte[] s) {
+                        out.write(s);
+                        return Unit.unit();
+                    }
+                })).onRedeem(new Action<Promise<Unit>>() {
+                    @Override
+                    public void apply(Promise<Unit> unitPromise) {
+                        out.close();
+                    }
+                });
+            }
+        };
+        Controller.response().setHeader("Content-Length", "-1");
+        return Controller.ok(chunks);
+    }
+
     public static <T> Results.Status stream(final Enumerator<T> enumerator) {
         return stream(enumerator, new ByteBuilder<T>() {
             @Override

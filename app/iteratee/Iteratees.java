@@ -104,7 +104,7 @@ public class Iteratees {
         public static <T> Iteratee<T, Unit> foreach(Function<T, Unit> func) {
             return new ForeachIteratee<T>(func);
         }
-        public static <T> Iteratee<Byte[], Unit> toStream(OutputStream os) {
+        public static <T> Iteratee<byte[], Unit> toStream(OutputStream os) {
             return new OutputStreamIteratee(os);
         }
         public static <T> Iteratee<T, Unit> ignore() {
@@ -114,7 +114,7 @@ public class Iteratees {
             return new HeadIteratee<T>();
         }
     }
-    public static class OutputStreamIteratee extends Iteratee<Byte[], Unit> {
+    public static class OutputStreamIteratee extends Iteratee<byte[], Unit> {
         public final OutputStream stream;
 
         public OutputStreamIteratee(OutputStream stream) {
@@ -123,16 +123,16 @@ public class Iteratees {
 
         public void onReceive(Object msg, ActorRef sender, ActorRef self) throws Exception {
             for (Elem e : F.caseClassOf(Elem.class, msg)) {
-                Elem<Byte[]> el = (Elem<Byte[]>) e;
-                for (Byte[] s : el.get()) {
+                Elem<byte[]> el = (Elem<byte[]>) e;
+                for (byte[] s : el.get()) {
                     if (s != null) {
                         try {
-                            byte[] b = new byte[s.length];
-                            for (int i = 0; i < s.length; i++) {
-                                if (b != null && s[i] != null)
-                                    b[i] = s[i];
-                            }
-                            stream.write(b);
+                            /**byte[] b = new byte[s.length];
+                             for (int i = 0; i < s.length; i++) {
+                             if (b != null && s[i] != null)
+                             b[i] = s[i];
+                             }**/
+                            stream.write(s);
                         } catch (Exception ex) { ex.printStackTrace(); }
                     }
                 }
@@ -251,12 +251,19 @@ public class Iteratees {
         public static <T> Enumerator<T> of(Iterable<T> iterable) {
             return new IterableEnumerator(iterable);
         }
-        public static <T> Enumerator<Byte[]> fromStream(InputStream is, int chunkSize) {
+        public static <T> Enumerator<byte[]> fromStream(InputStream is, int chunkSize) {
             return new FromInputStreamEnumerator(is, chunkSize);
         }
-        public static <T> Enumerator<Byte[]> fromFile(File f, int chunkSize) {
+        public static <T> Enumerator<byte[]> fromFile(File f, int chunkSize) {
             try {
                 return new FromInputStreamEnumerator(new FileInputStream(f), chunkSize);
+            } catch (FileNotFoundException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        public static <T> Enumerator<byte[]> fromFile(File f) {
+            try {
+                return new FromInputStreamEnumerator(new FileInputStream(f), 2048);
             } catch (FileNotFoundException ex) {
                 throw new RuntimeException(ex);
             }
@@ -532,7 +539,7 @@ public class Iteratees {
             return (current < Character.MAX_VALUE);
         }
     }
-    private static class FromInputStreamEnumerator extends Enumerator<Byte[]> {
+    private static class FromInputStreamEnumerator extends Enumerator<byte[]> {
         private final InputStream is;
         private final int chunkSize;
         private boolean hasnext = true;
@@ -541,25 +548,20 @@ public class Iteratees {
             this.chunkSize = chunkSize;
         }
         @Override
-        public Option<Byte[]> next() {
+        public Option<byte[]> next() {
             byte[] bytes = new byte[chunkSize];
-            Byte[] copy = new Byte[chunkSize];
+            //Byte[] copy = new Byte[chunkSize];
             try {
                 int numRead = is.read(bytes);
                 if (numRead == -1) {
                     close();
-                } else {
-                    int i = 0;
-                    for (byte b : bytes) {
-                        copy[i] = b;
-                        i++;
-                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 close();
             }
-            return Option.some(copy);
+            //return Option.some(copy);
+            return Option.some(bytes);
         }
         private void close() {
             hasnext = false;
