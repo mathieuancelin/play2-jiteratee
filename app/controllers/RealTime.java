@@ -18,7 +18,7 @@ public class RealTime extends Controller {
 
     public static Result feed(final String role, final int lowerBound, final int higherBound) {
 
-        Enumeratee<Event, Event> secure = Enumeratee.collect(new Function<Event, Option<Event>>() {
+        Enumeratee<Event, Event> secure = Enumeratee.collect( new Function<Event, Option<Event>>() {
             @Override
             public Option<Event> apply(Event o) {
                 for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
@@ -39,7 +39,7 @@ public class RealTime extends Controller {
             }
         });
 
-        Enumeratee<Event, Event> inBounds = Enumeratee.collect(new Function<Event, Option<Event>>() {
+        Enumeratee<Event, Event> inBounds = Enumeratee.collect( new Function<Event, Option<Event>>() {
             @Override
             public Option<Event> apply(Event o) {
                 for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
@@ -54,7 +54,7 @@ public class RealTime extends Controller {
             }
         });
 
-        Enumeratee<Event, String> asJson = Enumeratee.map(new Function<Event, String>() {
+        Enumeratee<Event, String> asJson = Enumeratee.map( new Function<Event, String>() {
             @Override
             public String apply(Event o) {
                 for (SystemStatus status : caseClassOf(SystemStatus.class, o)) {
@@ -67,6 +67,6 @@ public class RealTime extends Controller {
             }
         });
 
-        return JIteratees.eventSource(Streams.events.through(secure, inBounds).through(asJson));
+        return JIteratees.eventSource( Streams.events.through( secure, inBounds ).through( asJson ) );
     }
 }
