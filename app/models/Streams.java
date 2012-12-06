@@ -44,6 +44,6 @@ public class Streams {
             return Option.<Event>some(new SystemStatus("System message"));
         }
     });
-    public static final Enumerator<Event> events = Enumerator.interleave( operations, noise );
+    public static final Enumerator<Event> events = Enumerator.interleave( Event.class, operations, noise );
 
 }

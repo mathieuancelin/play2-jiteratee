@@ -295,6 +295,18 @@ public class Iteratees {
                 }
             };
         }
+        public static <T> Enumerator<T> interleave(final Class<T> clazz, final Enumerator<T>... enumerators) {
+            final PushEnumerator<T> push = Enumerator.unicast(clazz);
+            for (Enumerator<T> enumerator : enumerators) {
+                enumerator.applyOn(Iteratee.foreach(new F.UFunction<T>() {
+                    @Override
+                    public void invoke(T value) {
+                        push.push(value);
+                    }
+                }));
+            }
+            return push;
+        }
     }
     public static abstract class Enumeratee<I, O> implements Forward {
         private ActorRef fromEnumerator;
@@ -700,6 +712,7 @@ public class Iteratees {
             }
         }
     }
+
     private static class InterleavedEnumerators<T> extends Enumerator<T> {
         private final List<Enumerator<T>> enumerators;
         private final CountDownLatch latch;
