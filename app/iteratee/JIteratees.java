@@ -135,6 +135,13 @@ public class JIteratees {
         public O build(I value);
     }
 
+    public static class Identity<T> implements Builder<T, T> {
+        @Override
+        public T build(T value) {
+            return value;
+        }
+    }
+
     public static <T> Results.Status eventSource(final Enumerator<T> enumerator, final StrBuilder<T> builder) {
         Results.Chunks<String> chunks = new Results.StringChunks() {
             public void onReady(final Results.Chunks.Out<String> out) {
@@ -284,65 +291,34 @@ public class JIteratees {
         });
     }
 
-    public static <T> WebSocket<String> websocket(final Iteratee<String, Unit> inIteratee, final Enumerator<String> outEnumerator) {
-        return websocket(String.class, String.class, inIteratee, new BuilderFromStr<String>() {
-            @Override
-            public String build(String value) {
-                return value;
-            }
-        }, outEnumerator, new StrBuilder<String>() {
-            @Override
-            public String build(String value) {
-                return value;
-            }
-        });
+    public static <T> WebSocket<T> websocket(final Class<T> clazz, final Iteratee<T, Unit> inIteratee, final Enumerator<T> outEnumerator) {
+        return websocket(clazz, clazz, inIteratee, new Identity<T>(), outEnumerator, new Identity<T>());
     }
 
-    public static WebSocket<String> websocket(final Iteratee<String, Unit> inIteratee, final HubEnumerator<String> outEnumerator) {
-        return websocket(String.class, String.class, inIteratee, new BuilderFromStr<String>() {
-            @Override
-            public String build(String value) {
-                return value;
-            }
-        }, outEnumerator, new StrBuilder<String>() {
-            @Override
-            public String build(String value) {
-                return value;
-            }
-        });
+    public static <T> WebSocket<T> websocket(final Class<T> clazz, final Iteratee<T, Unit> inIteratee, final HubEnumerator<T> outEnumerator) {
+        return websocket(clazz, clazz, inIteratee, new Identity<T>(), outEnumerator, new Identity<T>());
+    }
+
+    public static <T> WebSocket<String> websocketStr(final Iteratee<String, Unit> inIteratee, final Enumerator<String> outEnumerator) {
+        return websocket(String.class, String.class, inIteratee, new Identity<String>(), outEnumerator, new Identity<String>());
+    }
+
+    public static WebSocket<String> websocketStr(final Iteratee<String, Unit> inIteratee, final HubEnumerator<String> outEnumerator) {
+        return websocket(String.class, String.class, inIteratee, new Identity<String>(), outEnumerator, new Identity<String>());
     }
 
     public static <T> WebSocket<JsonNode> websocketJSON(final Iteratee<JsonNode, Unit> inIteratee, final Enumerator<JsonNode> outEnumerator) {
-        return websocket(JsonNode.class, JsonNode.class, inIteratee, new Builder<JsonNode, JsonNode>() {
-                    @Override
-                    public JsonNode build(JsonNode value) {
-                        return value;
-                    }
-                }, outEnumerator, new Builder<JsonNode, JsonNode>() {
-                    @Override
-                    public JsonNode build(JsonNode value) {
-                        return value;
-                    }
-                });
+        return websocket(JsonNode.class, JsonNode.class, inIteratee, new Identity<JsonNode>(), outEnumerator, new Identity<JsonNode>());
     }
 
     public static WebSocket<JsonNode> websocketJSON(final Iteratee<JsonNode, Unit> inIteratee, final HubEnumerator<JsonNode> outEnumerator) {
-        return websocket(JsonNode.class, JsonNode.class, inIteratee, new Builder<JsonNode, JsonNode>() {
-                    @Override
-                    public JsonNode build(JsonNode value) {
-                        return value;
-                    }
-                }, outEnumerator, new Builder<JsonNode, JsonNode>() {
-                    @Override
-                    public JsonNode build(JsonNode value) {
-                        return value;
-                    }
-                });
+        return websocket(JsonNode.class, JsonNode.class, inIteratee, new Identity<JsonNode>(), outEnumerator, new Identity<JsonNode>());
     }
 
     public static <IO, FR> WebSocket<IO> websocket(final Class<IO> clazz, final Class<FR> from,
             final Iteratee<FR, Unit> inIteratee, final Builder<IO, FR> inBuilder,
             final Enumerator<FR> outEnumerator, final Builder<FR, IO> outBuilder) {
+
         WebSocket<IO> ws =  new WebSocket<IO>() {
             public void onReady(final WebSocket.In<IO> in, final WebSocket.Out<IO> out) {
                 final Iteratee<FR, Unit> send = Iteratee.foreach(new Function<FR, Unit>() {

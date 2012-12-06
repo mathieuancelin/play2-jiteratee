@@ -65,7 +65,7 @@ public class Application extends Controller {
                 out.push("Received : " + s);
             }
         });
-        return JIteratees.websocket( in, out );
+        return JIteratees.websocket( String.class, in, out );
     }
 
     public static Result file() {
