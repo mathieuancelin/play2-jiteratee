@@ -20,13 +20,6 @@ public class RealTimeBroadcast extends Controller {
     public static final HubEnumerator<Event> hub = Enumerator.broadcast( Streams.events );
 
     public static Result feed(final String role, final int lowerBound, final int higherBound) {
-        final PushEnumerator<Event> enumerator = Enumerator.unicast(Event.class);
-        hub.add( Iteratee.foreach(new UFunction<Event>() {
-            @Override
-            public void invoke(Event o) {
-                enumerator.push(o);
-            }
-        }));
         Enumeratee<Event, Event> secure = Enumeratee.collect( new Function<Event, Option<Event>>() {
             @Override
             public Option<Event> apply(Event o) {
@@ -76,6 +69,6 @@ public class RealTimeBroadcast extends Controller {
             }
         });
 
-        return JIteratees.eventSource( enumerator.through( secure, inBounds ).through( asJson ) );
+        return JIteratees.eventSource( Enumerator.feed(Event.class, hub).through( secure, inBounds ).through( asJson ) );
     }
 }
