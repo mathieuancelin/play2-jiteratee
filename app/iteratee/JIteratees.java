@@ -9,6 +9,7 @@ import play.mvc.Http;
 import play.mvc.Results;
 import play.mvc.WebSocket;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 
 import static iteratee.F.*;
@@ -17,6 +18,10 @@ import static iteratee.Iteratees.*;
 public class JIteratees {
 
     public static final String EVENTSOURCE = "text/event-stream";
+
+    public static <T> Results.Status file(final File file) {
+        return file(Enumerator.fromFile(file), "application/octet-stream");
+    }
 
     public static <T> Results.Status file(final Enumerator<byte[]> enumerator) {
         return file(enumerator, "application/octet-stream");
